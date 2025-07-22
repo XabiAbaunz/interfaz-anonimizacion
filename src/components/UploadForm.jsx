@@ -1,6 +1,8 @@
 import React from 'react';
 import { procesarAnonimizacion } from '../scripts/anonymize.js';
 
+import pdfToText from 'react-pdftotext'
+
 function UploadForm({ onComplete }) {
   const [endpoint, setEndpoint] = React.useState('');
   const [file, setFile] = React.useState(null);
@@ -26,6 +28,13 @@ function UploadForm({ onComplete }) {
 
     if (extension === 'txt') {
       return await file.text();
+    } else if (extension === 'pdf') {
+      try {
+        const pdfText = await pdfToText(file);
+        return pdfText;
+      } catch (error) {
+        console.error("Failed to extract text from pdf", error);
+      }
     }
   }
 
@@ -39,7 +48,7 @@ function UploadForm({ onComplete }) {
       <br /><br />
 
       <label>Archivo: </label>
-      <input type='file' accept='.txt' onChange={(e) => setFile(e.target.files[0])} />
+      <input type='file' accept='.txt, .pdf' onChange={(e) => setFile(e.target.files[0])} />
 
       <p>Modo de análisis:</p>
       <label>
