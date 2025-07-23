@@ -1,7 +1,7 @@
 import React from 'react';
-import { procesarAnonimizacion } from '../scripts/anonymize.js';
+import { procesarAnonimizacion } from '../utils/anonymize.js';
 
-import pdfToText from 'react-pdftotext'
+import { pdfToText } from '../utils/pdfToText';
 
 function UploadForm({ onComplete }) {
   const [endpoint, setEndpoint] = React.useState('');
@@ -34,6 +34,7 @@ function UploadForm({ onComplete }) {
         return pdfText;
       } catch (error) {
         console.error("Failed to extract text from pdf", error);
+        return 'Error al procesar el PDF.'
       }
     }
   }
