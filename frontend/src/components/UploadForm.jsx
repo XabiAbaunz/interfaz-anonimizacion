@@ -1,25 +1,51 @@
 import React from 'react';
-import { procesarAnonimizacion } from '../utils/anonymize.js';
 
 import { pdfToText } from '../utils/pdfToText';
 
 function UploadForm({ onComplete }) {
   const [endpoint, setEndpoint] = React.useState('');
+  const [key, setKey] = React.useState('');
   const [file, setFile] = React.useState(null);
   const [modo, setModo] = React.useState('rapida');
 
   const handleContinuar = async () => {
-    const textoOriginal = await leerTextoDesdeArchivo(file);
-    const entidades = await procesarAnonimizacion(endpoint, textoOriginal);
-    let esRapida = true
-    if (modo === 'manual') {
-      esRapida = false;
-    }
-    try { 
+    try {
+      const textoOriginal = await leerTextoDesdeArchivo(file);
+      
+      const datosParaBackend = {
+        cvContent: textoOriginal,
+        ollamaEndpoint: endpoint,
+        ollamaKey: key,
+      };
+
+      const backendUrl = 'api/anonymize';
+
+      const response = await fetch(backendUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(datosParaBackend),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      const entidades = data.entidades;
+
+      if (!entidades || typeof entidades !== 'object') {
+        throw new Error('La respuesta del backend no contiene un objeto de entidades válido.');
+      }
+      
+      const esRapida = modo === 'rapida';
+
       onComplete({ entidades, textoOriginal }, esRapida); 
     } catch (error) {
       console.error('Error al procesar:', error);
-      alert('Hubo un error al contactar con el endpoint.');
+      alert('Hubo un error al contactar con ollama.');
     }
   };
 
@@ -43,8 +69,13 @@ function UploadForm({ onComplete }) {
     <div>
       <h2>Sube tu currículum</h2>
 
-      <label>URL del SLM: </label>
+      <label>URL de Ollama: </label>
       <input type='text' value={endpoint} onChange={(e) => setEndpoint(e.target.value)} />
+
+      <br /><br />
+
+      <label>Key: </label> 
+      <input type='text' value={key} onChange={(e) => setKey(e.target.value)} />
 
       <br /><br />
 

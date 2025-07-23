@@ -1,23 +1,33 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
+# --- General ---
+*.log
+.env
+.env.*.local
 
-# testing
-/coverage
+# --- Frontend (React) specific ---
+frontend/node_modules
+frontend/build
+frontend/.DS_Store
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
 
-# production
-/build
-
-# misc
-.DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# --- Backend (Python/FastAPI) specific ---
+backend/__pycache__
+backend/*/__pycache__
+backend/*/*/__pycache__
+backend/*.py[cod]
+backend/*/*.py[cod]
+backend/*/*/*.py[cod]
+backend/*.so
+backend/.Python
+backend/*/.Python
+backend/venv*/ # Ignores virtual environments named venv, venv2, etc.
+backend/env*/
+backend/.env # If you decide to put .env directly in backend/
+backend/.vscode/
+backend/.idea/
+backend/*.egg-info/
+backend/dist/
+backend/build/

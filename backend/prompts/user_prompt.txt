@@ -1,0 +1,165 @@
+Analyze the following resume and extract ALL unique sensitive data that must be anonymized according to the strict rules below.
+
+Respond ONLY with a valid JSON object in this format:
+{"anon_1": "value1", "anon_2": "value2", ...}
+
+-----------------------------
+⚠️ JSON FORMAT RULES:
+-----------------------------
+
+- Use ONLY printable ASCII characters (32–126)
+- REMOVE all control characters (U+0000 to U+001F, U+007F)
+- Escape double quotes (") as \" and backslashes (\) as \\
+- Replace all line breaks within values with spaces
+- DO NOT include any code blocks, comments, or text besides the JSON
+- Start the JSON with "{" and end it with "}"
+
+-----------------------------
+🚨 STOP - DO NOT ANONYMIZE THESE:
+-----------------------------
+
+**NEVER ANONYMIZE:**
+- **Technologies**: FastAPI, AWS Lambda, CloudWatch, SNS, Node.js, TypeScript, Python, Docker, Kubernetes
+- **Standard tech organizations**: Amazon Web Services, Microsoft Azure, Linux Foundation, Google Cloud
+- **Learning platforms**: Udemy, Coursera, Codecademy, edX, Pluralsight, LinkedIn Learning
+- **Generic degree titles**: Bachelor's, Master's, B.Sc., M.Sc., MBA, PhD, B.A., M.A.
+- **Generic degree names**: "B.Sc. in Computer Science", "Master's in Engineering", "MBA in Business"
+- **Date ranges**: "February 2020 – Present", "March 2021 – August 2022", "2015–2016"
+- **Month+year**: "May 2022", "May 2025", "November 2023", "November 2026", "July 2023"
+- **Languages**: Spanish, English, German, French
+- **Language levels**: B1, B2, C1, C2, Native, Advanced
+- **Standard tests**: IELTS, TOEFL, Goethe-Zertifikat and their scores
+- **Generic licenses**: "Driving License: B"
+- **Programming languages**: JavaScript, TypeScript, Python, Go
+- **Cloud services**: AWS, Azure, AWS ECS, S3, DynamoDB
+- **Frameworks**: Express, React, Angular, FastAPI
+- **Methodologies**: Agile, Scrum, DevOps
+- **Years alone**: 2019, 2020, 2021, 2022, 2023
+
+-----------------------------
+✅ ANONYMIZE THESE ONLY:
+-----------------------------
+
+- **Person names** (first, last, full names)
+- **Birth dates** with day+month+year (e.g., "November 4, 1987")
+- **Phone numbers** (e.g., "+34 699 876 543")
+- **Emails** (e.g., "name@domain.com")
+- **Addresses** (streets, cities, countries when used as addresses)
+- **ID numbers** (DNI, SSN, passport numbers)
+- **Specific company names** (particular employers, small/local organizations) - NOT major tech companies
+- **Specific university names** (particular institutions) - NOT generic degree titles
+- **Project names** (specific named projects)
+- **Course titles** (specific course names)
+- **Social media URLs** (GitHub, LinkedIn profiles)
+- **Publication titles** and platforms
+- **Photo URLs**
+
+-----------------------------
+🎯 DECISION PROCESS:
+-----------------------------
+
+For each item, ask yourself:
+1. Is this a person's name? → ANONYMIZE
+2. Is this a birth date with day+month+year? → ANONYMIZE
+3. Is this contact information (phone, email, address)? → ANONYMIZE
+4. Is this a major tech company or standard organization? → DO NOT ANONYMIZE
+5. Is this a generic degree title (B.Sc., Master's, etc.)? → DO NOT ANONYMIZE
+6. Is this a specific company or institution name? → ANONYMIZE
+7. Is this a technology, programming language, or standard tool? → DO NOT ANONYMIZE
+8. Is this a date range or employment period? → DO NOT ANONYMIZE
+9. Is this a language name or proficiency level? → DO NOT ANONYMIZE
+
+-----------------------------
+EXAMPLE:
+-----------------------------
+
+Text:
+'''
+📄 CV – Laura Martínez  
+======================
+
+🧾 Personal Information  
+------------------------  
+- Full Name: Laura Martínez  
+- Date of Birth: May 14th, 1985  
+- Place of Birth: Zaragoza, Spain  
+- Phone Number: +34 612 34 56 78  
+- Email: laura.m85@gmail.com  
+
+🎯 Professional Experience  
+---------------------------  
+**Current Position**: Product and Interface Designer  
+**Company**: DiseñoGlobal  
+**Location**: Calle Mayor 12, 3ºA  
+**Status**: Currently working  
+**Responsibilities**:
+- Designing user interfaces for web and mobile platforms  
+- Leading UI/UX strategy across multiple client projects  
+- Collaborating with developers and product managers  
+
+**Previous Position**: Visual Designer  
+**Company**: Creativa Studio  
+**Dates**: March 2014 – September 2019  
+**Responsibilities**:
+- Developed branding and design systems for SMEs  
+- Participated in cross-functional agile teams  
+- Conducted usability testing and design iterations  
+
+🔗 Portfolio and Networks  
+-------------------------  
+- LinkedIn: linkedin.com/in/lmartinezdesign  
+- Instagram: @lmartinez.design  
+- Portfolio: www.lauramartinez.dev  
+
+🎓 Education  
+------------  
+- **Degree**: Bachelor's Degree in Graphic Design  
+  Institution: Universidad Complutense de Madrid  
+  Dates: 2003 – 2007  
+
+- **Certification**: UX Certification  
+  Provider: Domestika  
+  Date: February 2020  
+  Description: User-centered design, prototyping, accessibility  
+
+📰 Publications  
+---------------  
+- *Inclusive Design in the Digital Age*  
+  Published in Revista Española de Interacción Humano-Computadora (Vol. 27, Issue 2), 2022  
+
+- *El Futuro Invisible: Cómo la IA Está Transformando Nuestra Vida Cotidiana*  
+  Published in TecnoVisión Hoy, 2023  
+'''
+
+Response:
+{
+  "anon_1": "Laura Martínez",
+  "anon_2": "May 14th, 1985",
+  "anon_3": "Zaragoza, Spain",
+  "anon_4": "+34 612 34 56 78",
+  "anon_5": "laura.m85@gmail.com",
+  "anon_6": "Creativa Studio",
+  "anon_7": "DiseñoGlobal",
+  "anon_8": "Calle Mayor 12, 3ºA",
+  "anon_9": "linkedin.com/in/lmartinezdesign",
+  "anon_10": "@lmartinez.design",
+  "anon_11": "Universidad Complutense de Madrid",
+  "anon_12": "Domestika",
+  "anon_13": "Inclusive Design in the Digital Age",
+  "anon_14": "Revista Española de Interacción Humano-Computadora (Vol. 27, Issue 2)",
+  "anon_15": "El Futuro Invisible: Cómo la IA Está Transformando Nuestra Vida Cotidiana",
+  "anon_16": "www.lauramartinez.dev",
+  "anon_17": "TecnoVisión Hoy"
+}
+
+ONLY EXTRACT what is literally written in the CV.
+
+If a piece of data should be anonymized but is not present, do not include it.
+
+DO NOT include data from the example JSON.
+
+-----------------------------
+✉️ RESUME TEXT:
+-----------------------------
+
+[PASTE HERE THE CONTENT OF THE CV]
