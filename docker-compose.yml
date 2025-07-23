@@ -1,0 +1,47 @@
+# docker-compose.yml
+services:
+  # Servicio del Backend
+  backend:
+    # Construye la imagen desde el Dockerfile en la carpeta backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile # Asumiendo que se llama Dockerfile
+    # Nombre de la imagen (opcional, útil para identificarla)
+    image: anonimizacion-backend:latest
+    # Puerto expuesto: puerto_local:puerto_contenedor
+    # Accede al backend en http://localhost:8000
+    ports:
+      - "8000:8000"
+    # Volúmenes para datos persistentes o desarrollo
+    # Monta la carpeta 'prompts' para poder modificar sin reconstruir
+    volumes:
+      - ./backend/prompts:/app/prompts
+    # Nombre del contenedor (opcional)
+    container_name: backend
+    # Reiniciar siempre que no se detenga manualmente
+    restart: unless-stopped
+    # (Opcional) Limitar recursos si es necesario
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 1G
+
+  # Servicio del Frontend
+  frontend:
+    # Construye la imagen desde el Dockerfile en la carpeta frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile # Asumiendo que se llama Dockerfile
+    # Nombre de la imagen (opcional)
+    image: anonimizacion-frontend:latest
+    # Puerto expuesto: puerto_local:puerto_contenedor
+    # Accede al frontend en http://localhost
+    ports:
+      - "80:80" # Nginx sirve en el puerto 80 por defecto
+    # Dependencia: asegura que el backend se inicie primero (aunque no garantiza que esté listo)
+    depends_on:
+      - backend
+    # Nombre del contenedor
+    container_name: frontend
+    # Reiniciar siempre que no se detenga manualmente
+    restart: unless-stopped
