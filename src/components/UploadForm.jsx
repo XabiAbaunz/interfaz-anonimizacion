@@ -1,5 +1,7 @@
 import React from 'react';
-import { procesarAnonimizacion } from '../scripts/anonymize.js';
+import { procesarAnonimizacion } from '../utils/anonymize.js';
+
+import { pdfToText } from '../utils/pdfToText';
 
 function UploadForm({ onComplete }) {
   const [endpoint, setEndpoint] = React.useState('');
@@ -7,32 +9,35 @@ function UploadForm({ onComplete }) {
   const [modo, setModo] = React.useState('rapida');
 
   const handleContinuar = async () => {
+    const textoOriginal = await leerTextoDesdeArchivo(file);
+    const entidades = await procesarAnonimizacion(endpoint, textoOriginal);
+    let esRapida = true
     if (modo === 'manual') {
-      try {
-        const entidades = await procesarAnonimizacion(endpoint, file);
-        const textoOriginal = `Me llamo Nombre Apellido , puedes contactarme en email@email.com. \n Mi número es 667 11 11 11. Vivo en Dirección y nací el 01/01/2000. `;
-        
-        // Pasar los datos al componente padre (análisis manual)
-        onComplete({ entidades, textoOriginal }, false);
-        
-      } catch (error) {
-        console.error('Error al procesar:', error);
-        alert('Hubo un error al contactar con el endpoint.');
-      }
-    } else if (modo === 'rapida') {
-      try {
-        const entidades = await procesarAnonimizacion(endpoint, file);
-        const textoOriginal = `Me llamo Nombre Apellido , puedes contactarme en email@email.com. \n Mi número es 667 11 11 11. Vivo en Dirección y nací el 01/01/2000. `;
-        
-        // Pasar los datos al componente padre (anonimización rápida)
-        onComplete({ entidades, textoOriginal }, true);
-        
-      } catch (error) {
-        console.error('Error al procesar:', error);
-        alert('Hubo un error al contactar con el endpoint.');
-      }
+      esRapida = false;
+    }
+    try { 
+      onComplete({ entidades, textoOriginal }, esRapida); 
+    } catch (error) {
+      console.error('Error al procesar:', error);
+      alert('Hubo un error al contactar con el endpoint.');
     }
   };
+
+  async function leerTextoDesdeArchivo(file) {
+    const extension = file.name.split('.').pop().toLowerCase();
+
+    if (extension === 'txt') {
+      return await file.text();
+    } else if (extension === 'pdf') {
+      try {
+        const pdfText = await pdfToText(file);
+        return pdfText;
+      } catch (error) {
+        console.error("Failed to extract text from pdf", error);
+        return 'Error al procesar el PDF.'
+      }
+    }
+  }
 
   return (
     <div>
@@ -44,7 +49,7 @@ function UploadForm({ onComplete }) {
       <br /><br />
 
       <label>Archivo: </label>
-      <input type='file' accept='.txt' onChange={(e) => setFile(e.target.files[0])} />
+      <input type='file' accept='.txt, .pdf' onChange={(e) => setFile(e.target.files[0])} />
 
       <p>Modo de análisis:</p>
       <label>
@@ -69,7 +74,7 @@ function UploadForm({ onComplete }) {
 
       <br /><br />
 
-      <button onClick={handleContinuar}>
+      <button onClick={handleContinuar} disabled={!file}>
         Continuar
       </button>
     </div>
