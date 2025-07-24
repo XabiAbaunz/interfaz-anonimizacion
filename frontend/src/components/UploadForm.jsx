@@ -18,6 +18,9 @@ function UploadForm({ onComplete }) {
         ollamaKey: key,
       };
 
+      localStorage.setItem('ollamaEndpoint', endpoint);
+      localStorage.setItem('ollamaKey', key);
+
       const backendUrl = 'api/anonymize';
 
       const response = await fetch(backendUrl, {

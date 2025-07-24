@@ -1,14 +1,15 @@
 import './ResultView.css';
-import React from 'react';
+import React, { useState } from 'react';
 
 function ResultView({ entidades, textoOriginal, onFinalizar, onVolver }) {
-  const [estadoEntidades, setEstadoEntidades] = React.useState(
+  const [estadoEntidades, setEstadoEntidades] = useState(
     Object.keys(entidades).map((clave) => ({ clave, activa: true }))
   );
-
-  const [entidadesInternas, setEntidadesInternas] = React.useState(
+  const [entidadesInternas, setEntidadesInternas] = useState(
     Object.fromEntries(Object.entries(entidades).sort(([a], [b]) => a.localeCompare(b)))
   );
+  const [userInstruction, setUserInstruction] = useState('');
+  const [isRefining, setIsRefining] = useState(false);
 
   const toggleEntidad = (clave) => {
     setEstadoEntidades((prev) =>
@@ -18,17 +19,14 @@ function ResultView({ entidades, textoOriginal, onFinalizar, onVolver }) {
 
   const generarTextoAnonimizado = () => {
     let texto = textoOriginal;
-
     Object.entries(entidadesInternas).forEach(([clave, valor]) => {
       const regex = new RegExp(valor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
       texto = texto.replace(regex, clave);
     });
-
     estadoEntidades.forEach(({ clave, activa }) => {
       const regex = new RegExp(clave, 'g');
       texto = texto.replace(regex, activa ? clave : entidadesInternas[clave]);
     });
-
     return texto;
   };
 
@@ -44,54 +42,15 @@ function ResultView({ entidades, textoOriginal, onFinalizar, onVolver }) {
       return;
     }
 
-    // Obtener el texto completo del panel para verificar si la selección es válida
-    const textPanel = document.querySelector('.text-panel');
-    const panelText = textPanel ? textPanel.innerText : '';
-
-    // Verificar si la selección está completamente dentro de una etiqueta existente (anon_X)
-    const range = selection.getRangeAt(0);
-    const rangeStart = range.startOffset;
-    const rangeEnd = range.endOffset;
-    
-    // Encontrar todas las etiquetas en el texto del panel
-    const tagRegex = /anon_\d+/g;
-    let match;
-    let isInsideTag = false;
-    
-    // Para una verificación más precisa, necesitamos comparar con el texto renderizado
-    // Vamos a usar una aproximación: verificar si la selección coincide exactamente con un valor existente
     const seleccionCoincideConValorExistente = Object.values(entidadesInternas).some(
       (valor) => valor === seleccionNormalizada
     );
-    
+
     if (seleccionCoincideConValorExistente) {
       selection.removeAllRanges();
       return;
     }
 
-    // Verificación más robusta: comprobar si la selección está dentro de una etiqueta en el texto mostrado
-    // Esta es una solución aproximada. Para una solución perfecta, habría que mapear las posiciones exactas.
-    const selectedParentText = range.startContainer.textContent || '';
-    const tagMatchesInParent = [...selectedParentText.matchAll(tagRegex)];
-    
-    for (const tagMatch of tagMatchesInParent) {
-      const tagStart = tagMatch.index;
-      const tagEnd = tagStart + tagMatch[0].length;
-      // Comprobar si la selección está completamente dentro de esta etiqueta
-      if (rangeStart >= tagStart && rangeEnd <= tagEnd && 
-          selectedParentText.substring(tagStart, tagEnd) === tagMatch[0]) {
-        isInsideTag = true;
-        break;
-      }
-    }
-
-    if (isInsideTag) {
-      selection.removeAllRanges();
-      return;
-    }
-
-    // Verificación adicional usando una estrategia de comparación de contexto
-    // Esta es una solución más precisa que verifica contra el texto anonimizado
     if (isSelectionInTag(seleccionNormalizada, textoAnonimizado)) {
       selection.removeAllRanges();
       return;
@@ -105,20 +64,16 @@ function ResultView({ entidades, textoOriginal, onFinalizar, onVolver }) {
         ? Math.max(...clavesExistentes) + 1
         : 1;
       const nuevaClave = `anon_${siguienteNumero}`;
-      
-      // Actualizar entidades internas
+
       const nuevasEntidades = {
         ...entidadesInternas,
         [nuevaClave]: selectedText,
       };
-      
       const nuevasEntidadesOrdenadas = Object.fromEntries(
         Object.entries(nuevasEntidades).sort(([a], [b]) => a.localeCompare(b))
       );
-      
       setEntidadesInternas(nuevasEntidadesOrdenadas);
-      
-      // Actualizar estado de entidades
+
       const nuevasClaves = Object.keys(nuevasEntidadesOrdenadas).map((clave) => {
         const existente = estadoEntidades.find((e) => e.clave === clave);
         return {
@@ -126,45 +81,112 @@ function ResultView({ entidades, textoOriginal, onFinalizar, onVolver }) {
           activa: existente ? existente.activa : true,
         };
       });
-      
       setEstadoEntidades(nuevasClaves);
     }
-    
     selection.removeAllRanges();
   };
 
-  // Función auxiliar para verificar si una selección está dentro de una etiqueta
   function isSelectionInTag(selection, textWithTags) {
-    // Esta función busca patrones donde la selección pueda estar dentro de una etiqueta
-    // Ejemplo: si seleccionan "anon" y hay "anon_1" en el texto
     const tagRegex = /anon_\d+/g;
     let match;
-    
     while ((match = tagRegex.exec(textWithTags)) !== null) {
       if (selection === match[0]) {
-        // La selección es exactamente una etiqueta
         return true;
       }
-      // Podríamos hacer verificaciones más complejas aquí si fuera necesario
     }
-    
     return false;
   }
 
+  const handleRefine = async () => {
+    if (!userInstruction.trim()) {
+      alert('Por favor, introduce una instrucción para refinar la anonimización.');
+      return;
+    }
+
+    setIsRefining(true);
+
+    try {
+      const ollamaEndpoint = localStorage.getItem('ollamaEndpoint') || '';
+      const ollamaKey = localStorage.getItem('ollamaKey') || '';
+
+      if (!ollamaEndpoint) {
+        throw new Error('No se encontró el endpoint de Ollama. Por favor, vuelve atrás e introdúcelo de nuevo.');
+      }
+
+      const datosParaRefinamiento = {
+        cvContent: textoOriginal,
+        currentMapping: entidadesInternas,
+        userInstruction: userInstruction,
+        ollamaEndpoint: ollamaEndpoint,
+        ollamaKey: ollamaKey,
+      };
+
+      const backendUrl = '/api/refine_anonymization';
+      const response = await fetch(backendUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(datosParaRefinamiento),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Error del servidor durante el refinamiento: ${response.status} ${response.statusText}. Detalle: ${errorData.detail || 'Desconocido'}`);
+      }
+
+      const data = await response.json();
+      const refinedEntidades = data.entidades;
+
+      if (!refinedEntidades || typeof refinedEntidades !== 'object') {
+        throw new Error('La respuesta del backend no contiene un objeto de entidades válido para el refinamiento.');
+      }
+
+      const refinedEntidadesOrdenadas = Object.fromEntries(
+        Object.entries(refinedEntidades).sort(([a], [b]) => a.localeCompare(b))
+      );
+      setEntidadesInternas(refinedEntidadesOrdenadas);
+
+      const nuevasClavesEstado = Object.keys(refinedEntidadesOrdenadas).map((clave) => {
+        const existente = estadoEntidades.find((e) => e.clave === clave);
+        return {
+          clave,
+          activa: existente ? existente.activa : true,
+        };
+      });
+      setEstadoEntidades(nuevasClavesEstado);
+
+      setUserInstruction('');
+      alert('Anonimización refinada con éxito.');
+
+    } catch (error) {
+      console.error('Error al refinar la anonimización:', error);
+      alert(`Hubo un error al refinar la anonimización: ${error.message}`);
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
   const handleSiguiente = () => {
-    // Generar entidades finales solo con las activas
     const entidadesFinales = {};
     estadoEntidades.forEach(({ clave, activa }) => {
       if (activa) {
         entidadesFinales[clave] = entidadesInternas[clave];
       }
     });
-    
     onFinalizar(entidadesFinales);
   };
 
   return (
     <div className="result-view">
+      {isRefining && (
+        <div className="refinement-loading-overlay">
+          <div className="refinement-loading-content">
+            <h3>Refinando Anonimización...</h3>
+            <p>Por favor, espera mientras el modelo procesa tu instrucción.</p>
+          </div>
+        </div>
+      )}
       <div className="main-content">
         <div className="entities-panel">
           <h3>Checklist de Entidades</h3>
@@ -179,7 +201,6 @@ function ResultView({ entidades, textoOriginal, onFinalizar, onVolver }) {
             </label>
           ))}
         </div>
-
         <div
           onMouseUp={handleTextSelection}
           className="text-panel"
@@ -189,11 +210,39 @@ function ResultView({ entidades, textoOriginal, onFinalizar, onVolver }) {
         </div>
       </div>
 
+      <div className="refinement-section">
+        <h4>Refinar Anonimización</h4>
+        <textarea
+          value={userInstruction}
+          onChange={(e) => setUserInstruction(e.target.value)}
+          placeholder="Escribe tu instrucción aquí"
+          rows="3"
+          className="refinement-instruction-input"
+          disabled={isRefining}
+        />
+        <div className="refinement-buttons">
+          <button
+            onClick={handleRefine}
+            disabled={isRefining || !userInstruction.trim()}
+            className="refine-button"
+          >
+            {isRefining ? 'Refinando...' : 'Refinar con IA'}
+          </button>
+          <button
+            onClick={() => setUserInstruction('')}
+            disabled={isRefining}
+            className="clear-instruction-button"
+          >
+            Limpiar Instrucción
+          </button>
+        </div>
+      </div>
+
       <div className="button-row">
-        <button onClick={onVolver} className="secondary-button">
+        <button onClick={onVolver} className="secondary-button" disabled={isRefining}>
           Volver
         </button>
-        <button onClick={handleSiguiente} className="primary-button">
+        <button onClick={handleSiguiente} className="primary-button" disabled={isRefining}>
           Siguiente
         </button>
       </div>

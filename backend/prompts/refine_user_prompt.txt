@@ -1,0 +1,15 @@
+Refine the anonymization of the following CV according to the user's instruction.
+
+Original CV Content:
+[ORIGINAL_CV_CONTENT]
+
+Currently Displayed CV Text (with parts already anonymized):
+[CURRENT_ANONYMIZED_TEXT]
+
+Current Anonymization Mapping:
+[CURRENT_MAPPING_JSON]
+
+Specific User Instruction for Refinement:
+[USER_INSTRUCTION]
+
+Generate the updated JSON mapping based on the instruction.

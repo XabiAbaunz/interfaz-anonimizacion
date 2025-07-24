@@ -18,7 +18,6 @@ def read_prompt_file(file_path):
         raise Exception(f"Error reading prompt file {file_path}: {str(e)}")
 
 def create_prompt(user_prompt_template, cv_content):
-    """Crea el prompt final combinando el template y el contenido del CV."""
     if "[PASTE HERE THE CONTENT OF THE CV]" in user_prompt_template:
         prompt = user_prompt_template.replace("[PASTE HERE THE CONTENT OF THE CV]", cv_content)
     else:
@@ -26,7 +25,6 @@ def create_prompt(user_prompt_template, cv_content):
     return prompt
 
 def call_ollama_api(system_prompt, user_prompt, api_url, api_key):
-    """Llama a la API de Ollama para procesar los prompts."""
     combined_prompt = f"{system_prompt}\n{user_prompt}"
 
     headers = {
@@ -63,7 +61,6 @@ def call_ollama_api(system_prompt, user_prompt, api_url, api_key):
         raise Exception(f"Formato de respuesta de la API inesperado: {str(e)}. Respuesta JSON completa: {json.dumps(response_data, indent=2)}")
 
 def extract_json_from_response(response_content):
-    """Extrae el objeto JSON del contenido de la respuesta de la API."""
     clean_content = clean_invisible_characters(response_content)
     json_object_pattern = r'\{[\s\S]*\}'
     json_match = re.search(json_object_pattern, clean_content)
@@ -212,12 +209,12 @@ def process_cv_parts(cv_parts, system_prompt, user_prompt_template, api_url, api
                 if len(mapping) > 3:
                     print(f"  ... y {len(mapping) - 3} elementos más")
         except json.JSONDecodeError as e:
-            print(f"❌ Error en JSON de la parte {i}: {str(e)}")
+            print(f"Error en JSON de la parte {i}: {str(e)}")
             print(f"Respuesta original completa (primeros 500 chars): {repr(response_content[:500])}")
             print(f"JSON extraído: {repr(json_content[:500])}")
             mappings.append({})
         except Exception as e:
-            print(f"❌ Error procesando la parte {i}: {str(e)}")
+            print(f"Error procesando la parte {i}: {str(e)}")
             mappings.append({})
     return mappings
 
@@ -247,3 +244,49 @@ def anonymize_cv_content(cv_content: str, ollama_endpoint: str, ollama_key: str)
     except Exception as e:
         print(f"Error en anonymize_cv_content: {e}")
         raise e
+    
+def refine_anonymization_content(cv_content: str, current_mapping: dict[str, str], user_instruction: str, ollama_endpoint: str, ollama_key: str):
+    try:
+        refine_system_prompt_path = os.path.join("prompts", "refine_system_prompt.txt")
+        refine_user_prompt_template_path = os.path.join("prompts", "refine_user_prompt.txt")
+
+        refine_system_prompt = read_prompt_file(refine_system_prompt_path)
+        refine_user_prompt_template = read_prompt_file(refine_user_prompt_template_path)
+
+        current_anon_text = cv_content
+        for anon_key, original_value in sorted(current_mapping.items(), key=lambda item: len(item[1]), reverse=True):
+             escaped_original = re.escape(original_value)
+             current_anon_text = re.sub(escaped_original, anon_key, current_anon_text, flags=re.IGNORECASE)
+
+        refine_user_prompt = refine_user_prompt_template
+        refine_user_prompt = refine_user_prompt.replace("[ORIGINAL_CV_CONTENT]", cv_content)
+        refine_user_prompt = refine_user_prompt.replace("[CURRENT_ANONYMIZED_TEXT]", current_anon_text)
+        refine_user_prompt = refine_user_prompt.replace("[CURRENT_MAPPING_JSON]", json.dumps(current_mapping, indent=2, ensure_ascii=False))
+        refine_user_prompt = refine_user_prompt.replace("[USER_INSTRUCTION]", user_instruction)
+
+        print("Calling Ollama API for refinement...")
+        response_content = call_ollama_api(
+            system_prompt=refine_system_prompt,
+            user_prompt=refine_user_prompt,
+            api_url=ollama_endpoint,
+            api_key=ollama_key
+        )
+
+        print("Extracting and parsing JSON from refinement response...")
+        json_content = extract_json_from_response(response_content)
+        json_content = clean_invisible_characters(json_content)
+        new_mapping = json.loads(json_content)
+        print(f"✓ Refinement: Received {len(new_mapping)} items to anonymize")
+
+        combined_mapping = {**current_mapping, **new_mapping}
+
+        print(f"Combined refined mapping with {len(combined_mapping)} items")
+        return combined_mapping
+    except json.JSONDecodeError as e:
+        print(f"❌ Error parsing JSON from refinement: {str(e)}")
+        print(f"Full original response (first 500 chars): {repr(response_content[:500])}")
+        print(f"Extracted JSON: {repr(json_content[:500])}")
+        raise Exception(f"Error parsing the JSON response from refinement: {str(e)}")
+    except Exception as e:
+       print(f"Error in refine_anonymization_content: {e}")
+       raise e

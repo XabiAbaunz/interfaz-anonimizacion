@@ -39,6 +39,8 @@ function App() {
   const handleVolver = () => {
     setFase('upload');
     setResultado(null);
+    localStorage.removeItem('ollamaEndpoint');
+    localStorage.removeItem('ollamaKey');
   };
 
   return (
