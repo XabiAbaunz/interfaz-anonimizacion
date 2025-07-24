@@ -1,5 +1,5 @@
 import React from 'react';
-import './FinalView.css';
+import './css/FinalView.css';
 
 function FinalView({ entidades, textoOriginal, onVolver }) {
   const generarTextoAnonimizado = () => {

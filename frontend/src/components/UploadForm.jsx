@@ -1,5 +1,4 @@
 import React from 'react';
-
 import { pdfToText } from '../utils/pdfToText';
 
 function UploadForm({ onComplete }) {
@@ -9,52 +8,26 @@ function UploadForm({ onComplete }) {
   const [modo, setModo] = React.useState('rapida');
 
   const handleContinuar = async () => {
+    if (!file) {
+        alert('Por favor, selecciona un archivo.');
+        return;
+    }
     try {
       const textoOriginal = await leerTextoDesdeArchivo(file);
       
-      const datosParaBackend = {
-        cvContent: textoOriginal,
-        ollamaEndpoint: endpoint,
-        ollamaKey: key,
-      };
-
       localStorage.setItem('ollamaEndpoint', endpoint);
       localStorage.setItem('ollamaKey', key);
 
-      const backendUrl = 'api/anonymize';
+      onComplete({ textoOriginal }, modo); 
 
-      const response = await fetch(backendUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(datosParaBackend),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Error del servidor: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      const entidades = data.entidades;
-
-      if (!entidades || typeof entidades !== 'object') {
-        throw new Error('La respuesta del backend no contiene un objeto de entidades válido.');
-      }
-      
-      const esRapida = modo === 'rapida';
-
-      onComplete({ entidades, textoOriginal }, esRapida); 
     } catch (error) {
-      console.error('Error al procesar:', error);
-      alert('Hubo un error al contactar con ollama.');
+      console.error('Error al procesar el archivo:', error);
+      alert(`Hubo un error al leer el archivo: ${error.message}`);
     }
   };
 
   async function leerTextoDesdeArchivo(file) {
     const extension = file.name.split('.').pop().toLowerCase();
-
     if (extension === 'txt') {
       return await file.text();
     } else if (extension === 'pdf') {
@@ -63,28 +36,24 @@ function UploadForm({ onComplete }) {
         return pdfText;
       } catch (error) {
         console.error("Failed to extract text from pdf", error);
-        return 'Error al procesar el PDF.'
+        throw new Error('Error al procesar el PDF.');
       }
+    } else {
+        throw new Error('Formato de archivo no soportado. Usa .txt o .pdf.');
     }
   }
 
   return (
     <div>
       <h2>Sube tu currículum</h2>
-
       <label>URL de Ollama: </label>
-      <input type='text' value={endpoint} onChange={(e) => setEndpoint(e.target.value)} />
-
+      <input type='text' value={endpoint} onChange={(e) => setEndpoint(e.target.value)} placeholder="http://..." />
       <br /><br />
-
-      <label>Key: </label> 
+      <label>Key (opcional): </label> 
       <input type='text' value={key} onChange={(e) => setKey(e.target.value)} />
-
       <br /><br />
-
       <label>Archivo: </label>
       <input type='file' accept='.txt, .pdf' onChange={(e) => setFile(e.target.files[0])} />
-
       <p>Modo de análisis:</p>
       <label>
         <input
@@ -95,7 +64,6 @@ function UploadForm({ onComplete }) {
         />
         Anonimización rápida
       </label>
-
       <label>
         <input
           type="radio"
@@ -105,9 +73,7 @@ function UploadForm({ onComplete }) {
         />
         Análisis manual
       </label>
-
       <br /><br />
-
       <button onClick={handleContinuar} disabled={!file}>
         Continuar
       </button>

@@ -1,4 +1,4 @@
-import './ResultView.css';
+import './css/ResultView.css';
 import React, { useState } from 'react';
 
 function ResultView({ entidades, textoOriginal, onFinalizar, onVolver }) {

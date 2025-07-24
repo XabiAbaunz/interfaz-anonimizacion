@@ -1,4 +1,4 @@
-import React from 'react';
+import './css/LoadingScreen.css';
 
 function LoadingScreen() {
   return (
@@ -6,8 +6,7 @@ function LoadingScreen() {
       <h2>Procesando tu currículum...</h2>
       <p>Por favor espera mientras analizamos el documento.</p>
       <div style={{ margin: '2rem 0' }}>
-        {/* Puedes agregar un spinner aquí */}
-        <div>⏳</div>
+        <div className="spinner">⏳</div>
       </div>
     </div>
   );

@@ -43,7 +43,7 @@ def call_ollama_api(system_prompt, user_prompt, api_url, api_key):
         }
     }
     try:
-        response = requests.post(api_url, headers=headers, json=payload, timeout=120)
+        response = requests.post(api_url, headers=headers, json=payload, timeout=3600)
         response.raise_for_status()
         response_data = response.json()
         if "response" not in response_data:
