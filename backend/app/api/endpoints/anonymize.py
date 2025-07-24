@@ -47,8 +47,8 @@ async def refine_anonymization_endpoint(request: RefineAnonymizeRequest):
         )
         return AnonymizeResponse(entidades=refined_mapping)
     except Exception as e:
-        print(f"Error in refine_anonymization_endpoint: {e}")
+        print(f"Error en el endpoint /refine_anonymization: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error while refining anonymization: {str(e)}"
+            detail=f"Error interno del servidor al refinar la anonimización: {str(e)}"
         )
